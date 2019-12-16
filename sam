@@ -1,0 +1,12 @@
+,s/\/home\/eric\/u\/grosse@gmail.com\/src\/ascon80pq\///g
+,s/\"\"\.s\+64\(SP\)/s.x0/g
+,s/\"\"\.s\+72\(SP\)/s.x1/g
+,s/\"\"\.s\+80\(SP\)/s.x2/g
+,s/\"\"\.s\+88\(SP\)/s.x3/g
+,s/\"\"\.s\+96\(SP\)/s.x4/g
+,s/\"\"\.t\(SP\)/t.x0/g
+,s/\"\"\.t\+8\(SP\)/t.x1/g
+,s/\"\"\.t\+16\(SP\)/t.x2/g
+,s/\"\"\.t\+24\(SP\)/t.x3/g
+,s/\"\"\.t\+32\(SP\)/t.x4/g
+w
