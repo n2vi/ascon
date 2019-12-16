@@ -3,7 +3,7 @@
 // Package ascon80pq implements https://ascon.iaik.tugraz.at/files/ascon12-nist.pdf.
 // This lightweight AEAD stream cipher uses a 20 byte key and 16 byte nonce, producing
 // ciphertext of the same length as the plaintext plus a 16 byte authentication tag.
-package ascon // import "github.com/n2vi/ascon"
+package ascon80pq // import "github.com/n2vi/ascon/ascon80pq"
 
 import (
 	"encoding/binary"

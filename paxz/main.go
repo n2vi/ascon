@@ -14,6 +14,8 @@ passphrases should read from a raw mode terminal, from a file, from a command
 line argument or from the environment as done here. None of the approaches is perfect.
 
 I use this command for offline bulk backup; otherwise I prefer upspinfs or upsync.
+The static linking and easy cross-compilation of Go makes this tool relatively painless
+to use even on foreign systems.
 */
 package main
 
@@ -32,7 +34,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/n2vi/ascon"
+	"github.com/n2vi/ascon/ascon80pq"
 	"upspin.io/key/proquint"
 )
 

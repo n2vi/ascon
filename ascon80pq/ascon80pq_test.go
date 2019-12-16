@@ -1,6 +1,6 @@
 // Copyright©2019 Eric Grosse n2vi.com/BSD2.txt
 
-package ascon
+package ascon80pq
 
 import (
 	"bufio"
