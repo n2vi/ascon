@@ -120,7 +120,7 @@ func putfile(tw *tar.Writer, pathname string, st os.FileInfo) {
 
 }
 
-// Function encryptPAXZ wraps ascon.Encrypt, picking a random nonce and
+// Function encryptPAXZ wraps ascon80pq.Encrypt, picking a random nonce and
 // descriptive associated data, generating a key from environment variable P, and
 // writing ad || nonce || ciphertext || tag to the output stream.
 // To later read the "associated data", use "sed 1q"; no key required.
@@ -153,7 +153,7 @@ func encryptPAXZ(ciphertext io.Writer, plaintext io.Reader) {
 	if n != len(nonce) {
 		log.Fatal("partial write of nonce without err?")
 	}
-	ascon.Encrypt(ciphertext, plaintext, ad, nonce, key)
+	ascon80pq.Encrypt(ciphertext, plaintext, ad, nonce, key)
 }
 
 func unarchive() {
@@ -241,7 +241,7 @@ func decryptPAXZ(plaintext io.Writer, ciphertext io.Reader) error {
 	if len(ad) < 29 {
 		return MissingAD
 	}
-	return ascon.Decrypt(plaintext, ciphertext, ad, key)
+	return ascon80pq/;.Decrypt(plaintext, ciphertext, ad, key)
 }
 
 // TODO switch to community-tolerable error handling
