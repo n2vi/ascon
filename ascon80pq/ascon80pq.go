@@ -1,11 +1,13 @@
 // Copyright©2019 Eric Grosse n2vi.com/BSD2.txt
 
 // Package ascon80pq implements https://ascon.iaik.tugraz.at/files/ascon12-nist.pdf.
-// This lightweight AEAD stream cipher uses a 20 byte key and 16 byte nonce, producing
-// ciphertext of the same length as the plaintext plus a 16 byte authentication tag.
+// This lightweight AuthenticatedEncryptionAssociatedData cipher uses a 20 byte key
+// and 16 byte nonce, producing ciphertext of the same length as the plaintext plus
+// a 16 byte authentication tag.
 package ascon80pq // import "github.com/n2vi/ascon/ascon80pq"
 
 import (
+	"bufio"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -13,14 +15,12 @@ import (
 	"math/bits"
 )
 
-var BadVerify = errors.New("ASCON decrypt verify failed! Do not use any partial results.")
-
 // Function Encrypt reads plaintext from the input stream, encrypts using key,
 // and writes ciphertext || tag to the output stream.
 // The nonce must not be reused! The associated data ad may be empty.
 // Since io here is mostly in eight byte chunks, bufio wrapping may help.
 func Encrypt(ciphertext io.Writer, plaintext io.Reader, ad, nonce, key []byte) {
-	// TODO It would be nicer to use crypto/cipher/AEAD and crypto/cipher/Stream, but how?
+	// TODO It would be nice to use crypto/cipher/AEAD and crypto/cipher/Stream, but how?
 	if len(nonce) != 16 || len(key) != 20 {
 		log.Fatal("recheck lengths of nonce and key")
 	}
@@ -30,6 +30,8 @@ func Encrypt(ciphertext io.Writer, plaintext io.Reader, ad, nonce, key []byte) {
 	N0 := binary.BigEndian.Uint64(nonce[0:8])
 	N1 := binary.BigEndian.Uint64(nonce[8:16])
 	IV := uint64(0xa0400c06) << 32
+	rbuf := bufio.NewReader(plaintext)
+	wbuf := bufio.NewWriter(ciphertext)
 
 	// Initialization phase
 	var s state
@@ -62,7 +64,7 @@ func Encrypt(ciphertext io.Writer, plaintext io.Reader, ad, nonce, key []byte) {
 	var errp error
 	var np int // number of valid bytes in p
 	for errp == nil {
-		n, errp := plaintext.Read(p[np:])
+		n, errp := rbuf.Read(p[np:])
 		np += n
 		if errp == io.EOF {
 			if np < 8 {
@@ -75,7 +77,7 @@ func Encrypt(ciphertext io.Writer, plaintext io.Reader, ad, nonce, key []byte) {
 		}
 		s.x0 ^= binary.BigEndian.Uint64(p)
 		binary.BigEndian.PutUint64(c, s.x0)
-		n, err := ciphertext.Write(c)
+		n, err := wbuf.Write(c)
 		chk(err)
 		if n != 8 {
 			log.Fatal("short write of ciphertext without err?")
@@ -89,7 +91,7 @@ func Encrypt(ciphertext io.Writer, plaintext io.Reader, ad, nonce, key []byte) {
 	s.x0 ^= bigendianUint64(p[:np])
 	s.x0 ^= uint64(0x80) << (56 - 8*np)
 	bigendianPutUint64(c, s.x0, np)
-	_, err := ciphertext.Write(c[:np])
+	_, err := wbuf.Write(c[:np])
 	chk(err)
 
 	// Finalization phase
@@ -100,12 +102,16 @@ func Encrypt(ciphertext io.Writer, plaintext io.Reader, ad, nonce, key []byte) {
 	s.x3 ^= K1
 	s.x4 ^= K2
 	binary.BigEndian.PutUint64(c, s.x3)
-	_, err = ciphertext.Write(c)
+	_, err = wbuf.Write(c)
 	chk(err)
 	binary.BigEndian.PutUint64(c, s.x4)
-	_, err = ciphertext.Write(c)
+	_, err = wbuf.Write(c)
+	chk(err)
+	err = wbuf.Flush()
 	chk(err)
 }
+
+var BadVerify = errors.New("ASCON decrypt verify failed! Do not use any partial results.")
 
 // Function Decrypt reads nonce and ciphertext from the input stream, decrypts using key
 // and ad, and writes plaintext to the output stream. If verification at the end fails, error will
@@ -116,8 +122,11 @@ func Decrypt(plaintext io.Writer, ciphertext io.Reader, ad, key []byte) error {
 	if len(key) != 20 {
 		log.Fatal("recheck length of key")
 	}
+	rbuf := bufio.NewReader(ciphertext)
+	wbuf := bufio.NewWriter(plaintext)
+
 	nonce := make([]byte, 16)
-	n, err := ciphertext.Read(nonce)
+	n, err := rbuf.Read(nonce)
 	chk(err)
 	if n != 16 {
 		log.Fatal("short read of ciphertext without err?")
@@ -160,7 +169,7 @@ func Decrypt(plaintext io.Writer, ciphertext io.Reader, ad, key []byte) error {
 	var errc error
 	var nc int // number of valid bytes in c
 	for errc == nil {
-		n, errc := ciphertext.Read(c[nc:])
+		n, errc := rbuf.Read(c[nc:])
 		nc += n
 		if errc == io.EOF {
 			if nc < 24 {
@@ -174,7 +183,7 @@ func Decrypt(plaintext io.Writer, ciphertext io.Reader, ad, key []byte) error {
 		c0 := binary.BigEndian.Uint64(c[:8])
 		binary.BigEndian.PutUint64(p, s.x0^c0)
 		s.x0 = c0
-		n, err := plaintext.Write(p)
+		n, err := wbuf.Write(p)
 		chk(err)
 		if n != 8 {
 			log.Fatal("short write of plaintext without err?")
@@ -194,7 +203,9 @@ func Decrypt(plaintext io.Writer, ciphertext io.Reader, ad, key []byte) error {
 	tag0 := binary.BigEndian.Uint64(c[nc : nc+8])
 	tag1 := binary.BigEndian.Uint64(c[nc+8 : nc+16])
 	bigendianPutUint64(p, s.x0^c0, nc)
-	_, err = plaintext.Write(p[:nc])
+	_, err = wbuf.Write(p[:nc])
+	chk(err)
+	err = wbuf.Flush()
 	chk(err)
 	s.x0 &= uint64(0xffffffffffffffff) >> (8 * nc)
 	s.x0 |= c0

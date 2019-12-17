@@ -241,7 +241,7 @@ func decryptPAXZ(plaintext io.Writer, ciphertext io.Reader) error {
 	if len(ad) < 29 {
 		return MissingAD
 	}
-	return ascon80pq/;.Decrypt(plaintext, ciphertext, ad, key)
+	return ascon80pq.Decrypt(plaintext, ciphertext, ad, key)
 }
 
 // TODO switch to community-tolerable error handling
