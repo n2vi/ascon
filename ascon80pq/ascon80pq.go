@@ -1,6 +1,6 @@
 // Copyright©2019 Eric Grosse n2vi.com/BSD2.txt
 
-// Package ascon80pq implements https://ascon.iaik.tugraz.at/files/ascon12-nist.pdf.
+// Package ascon80pq implements the system described at https://ascon.iaik.tugraz.at.
 // This lightweight AuthenticatedEncryptionAssociatedData cipher uses a 20 byte key
 // and 16 byte nonce, producing ciphertext of the same length as the plaintext plus
 // a 16 byte authentication tag.
@@ -16,11 +16,9 @@ import (
 )
 
 // Function Encrypt reads plaintext from the input stream, encrypts using key,
-// and writes ciphertext || tag to the output stream.
-// The nonce must not be reused! The associated data ad may be empty.
-// Since io here is mostly in eight byte chunks, bufio wrapping may help.
+// and writes ciphertext || tag to the output stream.  ad may be empty.
+// The nonce must not be reused!
 func Encrypt(ciphertext io.Writer, plaintext io.Reader, ad, nonce, key []byte) {
-	// TODO It would be nice to use crypto/cipher/AEAD and crypto/cipher/Stream, but how?
 	if len(nonce) != 16 || len(key) != 20 {
 		log.Fatal("recheck lengths of nonce and key")
 	}
@@ -117,7 +115,7 @@ var BadVerify = errors.New("ASCON decrypt verify failed! Do not use any partial 
 // and ad, and writes plaintext to the output stream. If verification at the end fails, error will
 // be non-nil and caller should ignore the plaintext, including wiping any partial results
 // already sent to disk. (It would be better to do that here, but is infeasible in one pass.
-// For sample use, see command paxz.)
+// For sample use, see command paxz. See also imperialviolet.org 2014/06/27.)
 func Decrypt(plaintext io.Writer, ciphertext io.Reader, ad, key []byte) error {
 	if len(key) != 20 {
 		log.Fatal("recheck length of key")
