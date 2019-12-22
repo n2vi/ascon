@@ -35,7 +35,6 @@ import (
 	"time"
 
 	"github.com/n2vi/ascon/ascon80pq"
-	"upspin.io/key/proquint"
 )
 
 var ddir = flag.String("d", "", "new directory to unarchive into")
@@ -131,7 +130,7 @@ func encryptPAXZ(ciphertext io.Writer, plaintext io.Reader) {
 	}
 	passsum := sha256.Sum256([]byte(passphrase))
 	key := passsum[0:20]
-	check := proquint.Encode((uint16(passsum[20]) << 8) | uint16(passsum[21]))
+	check := proquint((uint16(passsum[20]) << 8) | uint16(passsum[21]))
 	fmt.Fprintf(os.Stderr, "paxz key %s\n", check)
 	nonce := make([]byte, 16)
 	_, err := rand.Read(nonce)
@@ -219,7 +218,7 @@ func decryptPAXZ(plaintext io.Writer, ciphertext io.Reader) error {
 	passphrase := os.Getenv("P")
 	passsum := sha256.Sum256([]byte(passphrase))
 	key := passsum[0:20]
-	check := proquint.Encode((uint16(passsum[20]) << 8) | uint16(passsum[21]))
+	check := proquint((uint16(passsum[20]) << 8) | uint16(passsum[21]))
 	fmt.Fprintf(os.Stderr, "paxz key %s\n", check)
 
 	nextbyte := make([]byte, 1)
@@ -249,4 +248,30 @@ func chk(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// See http://arxiv.org/html/0901.4016 and upspin.io/key/proquint.
+var (
+	pqcons  = []byte("bdfghjklmnprstvz")
+	pqvowel = []byte("aiou")
+)
+
+// Encode returns a five-letter word representing a uint16.
+func proquint(x uint16) (s []byte) {
+	cons3 := x & 0x0f
+	x >>= 4
+	vow2 := x & 0x03
+	x >>= 2
+	cons2 := x & 0x0f
+	x >>= 4
+	vow1 := x & 0x03
+	x >>= 2
+	cons1 := x & 0x0f
+	s = make([]byte, 5)
+	s[0] = pqcons[cons1]
+	s[1] = pqvowel[vow1]
+	s[2] = pqcons[cons2]
+	s[3] = pqvowel[vow2]
+	s[4] = pqcons[cons3]
+	return
 }
