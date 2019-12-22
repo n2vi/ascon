@@ -64,7 +64,8 @@ func archive() {
 	chk(err)
 	err = zw.Close()
 	chk(err)
-	pipew.Close()
+	err = pipew.Close()
+	chk(err)
 	<-done
 }
 
@@ -85,7 +86,8 @@ func putfile(tw *tar.Writer, pathname string, st os.FileInfo) {
 		chk(err)
 		n, err := io.Copy(tw, file)
 		chk(err)
-		file.Close()
+		err = file.Close()
+		chk(err)
 		if n != hdr.Size {
 			log.Fatalf("size mismatch for %s: %d %d\n", hdr.Name, n, hdr.Size)
 		}
@@ -131,7 +133,7 @@ func encryptPAXZ(ciphertext io.Writer, plaintext io.Reader) {
 	passsum := sha256.Sum256([]byte(passphrase))
 	key := passsum[0:20]
 	check := proquint((uint16(passsum[20]) << 8) | uint16(passsum[21]))
-	fmt.Fprintf(os.Stderr, "paxz key %s\n", check)
+	fmt.Fprintf(os.Stderr, "paxz keysum %s\n", check)
 	nonce := make([]byte, 16)
 	_, err := rand.Read(nonce)
 	chk(err)
@@ -219,7 +221,7 @@ func decryptPAXZ(plaintext io.Writer, ciphertext io.Reader) error {
 	passsum := sha256.Sum256([]byte(passphrase))
 	key := passsum[0:20]
 	check := proquint((uint16(passsum[20]) << 8) | uint16(passsum[21]))
-	fmt.Fprintf(os.Stderr, "paxz key %s\n", check)
+	fmt.Fprintf(os.Stderr, "paxz keysum %s\n", check)
 
 	nextbyte := make([]byte, 1)
 	ad := make([]byte, 0, 200)
