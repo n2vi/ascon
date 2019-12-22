@@ -115,7 +115,7 @@ func putfile(tw *tar.Writer, pathname string, st os.FileInfo) {
 		err = os.Chdir("..")
 		chk(err)
 	default:
-		log.Fatalf("%s is not a normal file", st.Name())
+		log.Printf("%s is not a normal file; skipping", st.Name())
 	}
 
 }
