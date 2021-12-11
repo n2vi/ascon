@@ -187,16 +187,16 @@ func getfile(tr *tar.Reader) {
 			break
 		}
 		chk(err)
-		name := path.Clean(h.Name)
+		name := path.Clean("/"+h.Name)   // absolutize to prevent .. out of current directory
 		dir := path.Dir(name)
 		fi := h.FileInfo()
 		if fi.IsDir() {
-			err = os.MkdirAll(*ddir+"/"+name, 0700)
+			err = os.MkdirAll(*ddir+name, 0700)
 			chk(err)
 		} else {
-			err = os.MkdirAll(*ddir+"/"+dir, 0700)
+			err = os.MkdirAll(*ddir+dir, 0700)
 			chk(err)
-			f, err := os.OpenFile(*ddir+"/"+name, os.O_WRONLY|os.O_CREATE, 0600)
+			f, err := os.OpenFile(*ddir+name, os.O_WRONLY|os.O_CREATE, 0600)
 			chk(err)
 			if fi.Mode().IsRegular() {
 				_, err = io.Copy(f, tr)
@@ -204,7 +204,7 @@ func getfile(tr *tar.Reader) {
 			} else if fi.Mode()&os.ModeSymlink != 0 {
 				_, err = f.WriteString("symlink " + h.Linkname)
 				chk(err)
-				fmt.Fprintf(os.Stderr, "not restoring symlink %s\n", name)
+				fmt.Fprintf(os.Stderr, "not restoring symlink %s\n", name[1:])
 			}
 			err = f.Close()
 			chk(err)
